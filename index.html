@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>レジュメビューワージェネレーター</title>
+  <title>ResVie</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="icon" type="image/svg+xml" href="https://halcekey.github.io/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -15,11 +16,11 @@
     }
 
     html[data-theme="light"] {
-      --bg-app: #f1f5f9;
+      --bg-app: #f5f5f5;
       --bg-surface: #ffffff;
-      --bg-surface-sub: #f8fafc;
-      --bg-editor: #f8fafc;
-      --border-color: #e2e8f0;
+      --bg-surface-sub: #fafafa;
+      --bg-editor: #fafafa;
+      --border-color: #e8e8e8;
       --border-focus: #4f46e5;
       --text-main: #0f172a;
       --text-muted: #64748b;
@@ -34,11 +35,11 @@
     }
 
     html[data-theme="dark"] {
-      --bg-app: #020617;
-      --bg-surface: #0f172a;
-      --bg-surface-sub: #020617;
-      --bg-editor: #020617;
-      --border-color: #1e293b;
+      --bg-app: #060606;
+      --bg-surface: #171717;
+      --bg-surface-sub: #060606;
+      --bg-editor: #060606;
+      --border-color: #282828;
       --border-focus: #6366f1;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
@@ -349,16 +350,16 @@
 
   <header>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <span class="header-title">表示用レジュメ</span>
+      <span class="header-title">ResVie</span>
     </div>
 
     <div class="header-actions">
       <button id="btn-theme-toggle" class="btn btn-default" type="button" title="テーマ切り替え">
-        <span id="theme-toggle-icon">〇</span> <span id="theme-toggle-text">Light</span>
+        <span id="theme-toggle-icon">◆</span> <span id="theme-toggle-text">Light</span>
       </button>
 
-      <button id="btn-open-preview" class="btn btn-preview">
-        <span>プレビュー</span>
+      <button id="btn-open-preview" class="btn btn-preview" title="ブラウザの別タブでレジュメを表示">
+        <span>別タブでプレビュー ↗</span>
       </button>
 
       <button id="btn-export-modal" class="btn btn-export">
@@ -375,9 +376,8 @@
       </div>
 
       <div class="settings-body">
-        <!-- プリセット -->
         <div>
-          <span class="section-label">プリセット配色</span>
+          <span class="section-label">プリセット</span>
           <div class="preset-grid">
             <button data-preset="blue" class="preset-btn">
               <span class="color-dot" style="background: #2b5797;"></span><span>青</span>
@@ -396,7 +396,6 @@
 
         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;">
 
-        <!-- タイトル・フォント -->
         <div>
           <div class="form-group">
             <label>タイトル</label>
@@ -490,7 +489,7 @@
         </div>
 
         <div class="toolbar-group">
-          <button type="button" class="wiki-tool-btn" data-action="footnote";">[^注釈]</button>
+          <button type="button" class="wiki-tool-btn" data-action="footnote">[^注釈]</button>
           <button type="button" class="wiki-tool-btn" data-action="pagebreak">改ページ</button>
           <button type="button" class="wiki-tool-btn" data-action="reflist">参考文献リスト</button>
         </div>
@@ -505,7 +504,6 @@
         </div>
       </div>
 
-      <!-- 入力欄 -->
       <div class="textarea-wrapper">
         <textarea id="markdown-editor" spellcheck="false" class="code-font" placeholder="# ここにレジュメの本文を入力"></textarea>
       </div>
@@ -523,19 +521,7 @@
     </main>
   </div>
 
-  <div id="preview-modal" class="modal-overlay">
-    <div class="modal-header">
-      <span style="font-weight:bold; font-size:0.9rem;">プレビュー</span>
-      <div style="display:flex; gap:8px;">
-        <button id="btn-modal-open-newtab" class="btn btn-default">別タブで開く ↗</button>
-        <button id="btn-close-preview-modal" class="btn btn-preview">閉じる ✕</button>
-      </div>
-    </div>
-    <div style="flex:1; position:relative; background:#fff;">
-      <iframe id="preview-modal-frame" style="width:100%; height:100%; border:0; position:absolute; inset:0;"></iframe>
-    </div>
-  </div>
-
+  <!-- コード出力用モーダルのみ保持 -->
   <div id="export-modal" class="modal-overlay" style="align-items:center; justify-content:center; padding:20px;">
     <div class="modal-box">
       <div class="modal-header">
@@ -544,7 +530,7 @@
       </div>
       <div style="padding:16px; overflow:hidden; display:flex; flex-direction:column; gap:12px;">
         <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">
-          以下のコードをコピーして <code>.html</code> ファイルとして保存すれば、単体でそのまま動くレジュメビューワーになります。
+          以下のコードをコピーして <code>.html</code> ファイルとして保存すれば、単体でそのまま動くレジュメビューアになります。
         </p>
         <pre id="export-code-box" class="code-box code-font"></pre>
       </div>
@@ -559,7 +545,7 @@
   <div id="toast">メッセージ</div>
 
   <script>
- const DEFAULT_MARKDOWN = `# ようこそ！
+    const DEFAULT_MARKDOWN = `# ようこそ！
 更新日：2026年10月30日
 
 ## 使い方
@@ -617,6 +603,19 @@
 </ul>
 \`\`\`
 
+### 表
+表は以下のように表記されます。
+<div class="table-wrapper">
+
+| 項目名 | 分類 | 内容 |
+| ------ | ---- | ---- |
+| 項目A  | 分類1 | 事項 |
+| 項目B  | 分類2 | 事項 |
+| 項目C  | 分類3 | 事項 |
+
+<div class="table-caption">表タイトル</div>
+</div>
+
 ## それ以外の記法
 一般的なマークダウンの記法が使用できます。見た目の調整を行っていないため、一般的な見た目をしています。
 
@@ -651,16 +650,11 @@ this is code.
 これも内容です。
 </details>
 
-画像のサイズが調整できるので、htmlタグを使うことが推奨されます。画像とhtmlファイルは同じフォルダに置いてください。
+以下は画像です。画像のサイズが調整できるので、htmlタグを使うことが推奨されます。画像とhtmlファイルは同じフォルダに置いてください。
 
 <img src="samplefavicon.svg" alt="alt text" width="150" height="150">
 
-| これは | テーブル |
-| ---- | ---- |
-| 左上 | 右上 |
-| 左下 | 右下 |
-
-これは水平線です。
+以下は水平線です。
 ***
 
 ## おわりに
@@ -736,9 +730,7 @@ this is code.
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" type="image/svg+xml" href="${state.faviconUrl}">
- <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Noto+Sans:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Hebrew:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Noto+Serif+Hebrew:wght@400;700&family=Noto+Serif+JP:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Serif+TC:wght@400;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Noto+Sans:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Hebrew:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Noto+Serif+Hebrew:wght@400;700&family=Noto+Serif+JP:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Serif+TC:wght@400;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
   <style>
     :root {
@@ -753,7 +745,7 @@ this is code.
       --bg-drawer: ${state.colorPanelBg};
       --bg-footnotes: ${state.colorPanelBg};
       --highlight-bg: #fef08a;
-      :root {
+
       --font-sans: 
         "Noto Sans",
         "Noto Sans JP",
@@ -765,16 +757,15 @@ this is code.
         sans-serif,
         "Apple Color Emoji", "Segoe UI Emoji";
 
-       --font-serif: 
+      --font-serif: 
         "EB Garamond",
         "Noto Serif",
         "Noto Serif JP",
         "Noto Serif SC",
         "Noto Serif TC",
         "Noto Serif KR",
-        "Noto Serif Hebrew"
+        "Noto Serif Hebrew",
         serif;
-}
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -1056,8 +1047,7 @@ this is code.
     .fn-item-link { display: block; color: inherit; text-decoration: none; cursor: pointer; }
     .fn-item-link:hover .fn-text { color: var(--primary-color); }
     .fn-num { font-weight: bold; color: var(--primary-color); margin-right: 6px; }
-    .fn-back-icon { font-size: 0.85em; color: #94a3b8; margin-left: 6px; transition: color 0.15s; }
-    .fn-item-link:hover .fn-back-icon { color: var(--primary-color); }
+    .fn-item-link:hover { color: var(--primary-color); }
 
     .print-footnotes { display: none; }
 
@@ -1079,7 +1069,7 @@ this is code.
       .app-container { display: block !important; width: 100% !important; }
       .menu-toggle, .sidebar-overlay, #sidebar, #footnotes-panel { display: none !important; }
       #main-content { padding: 0 !important; margin: 0 !important; max-width: 100% !important; width: 100% !important; }
-      .footnote-balloon, .fn-back-icon { display: none !important; }
+      .footnote-balloon, { display: none !important; }
       .print-footnotes {
         display: block !important;
         visibility: visible !important;
@@ -1126,6 +1116,43 @@ this is code.
       .page-break-badge {
         display: none !important;
       }
+    }
+    .table-wrapper {
+      margin: 28px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    #main-content table {
+      margin-left: auto;
+      margin-right: auto;
+      border-collapse: collapse;
+      border: 1px solid var(--border-color);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    #main-content th,
+    #main-content td {
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
+    }
+
+    #main-content th {
+      background-color: var(--primary-bg);
+      color: var(--primary-color);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .table-caption {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #64748b;
+      text-align: center;
     }
   </style>
 </head>
@@ -1276,7 +1303,6 @@ ${state.markdown}
               <a href="#\${fn.refId}" class="fn-item-link" title="本文に戻る">
                 <span class="fn-num">\${fn.num}</span>
                 <span class="fn-text">\${fn.text}</span>
-                <span class="fn-back-icon">↩</span>
               </a>
             \`;
             listUl.appendChild(itemLi);
@@ -1304,7 +1330,11 @@ ${state.markdown}
         const a = document.createElement("a");
         a.href = \`#\${id}\`;
         a.textContent = heading.textContent;
-        a.addEventListener("click", closeMenu);
+
+        a.addEventListener("click", () => {
+          closeMenu();
+          heading.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
 
         li.appendChild(a);
         tocList.appendChild(li);
@@ -1318,11 +1348,31 @@ ${state.markdown}
           const targetRef = document.getElementById(targetRefId);
 
           if (targetRef) {
+            targetRef.scrollIntoView({ behavior: "smooth", block: "center" });
             document.querySelectorAll(".footnote-wrapper").forEach(el => el.classList.remove("active-target"));
             targetRef.classList.add("active-target");
             setTimeout(() => {
               targetRef.classList.remove("active-target");
             }, 2000);
+          }
+        });
+      });
+
+      document.querySelectorAll(".footnote-ref").forEach(refLink => {
+        refLink.addEventListener("click", (e) => {
+          const targetFnId = refLink.getAttribute("href").replace("#", "");
+          const targetFn = document.getElementById(targetFnId);
+          const panel = document.getElementById("footnotes-panel");
+
+          if (targetFn && panel) {
+            const panelRect = panel.getBoundingClientRect();
+            const targetRect = targetFn.getBoundingClientRect();
+            const targetTopInPanel = targetRect.top - panelRect.top + panel.scrollTop;
+
+            panel.scrollTo({
+              top: targetTopInPanel - 20,
+              behavior: "smooth"
+            });
           }
         });
       });
@@ -1395,7 +1445,15 @@ ${state.markdown}
       quote: () => insertAtCursor('\n> ', '\n', '引用文'),
       link: () => insertAtCursor('[', '](https://example.com)', 'リンクテキスト'),
       code: () => insertAtCursor('\n```\n', '\n```\n', 'コード'),
-      table: () => insertAtCursor('\n| 項目 | 内容 |\n| ---- | ---- |\n| A    | 1    |\n'),
+      table: () => insertAtCursor(
+        '\n<div class="table-wrapper">\n\n' +
+        '| 項目名 | 分類 | 備考 |\n' +
+        '| :--- | :---: | ---: |\n' +
+        '| データ1 | 内容A | 備考1 |\n' +
+        '| データ2 | 内容B | 備考2 |\n\n' +
+        '<div class="table-caption">表タイトル</div>\n' +
+        '</div>\n'
+      ),
       details: () => insertAtCursor('\n<details>\n<summary>要約</summary>\n\n詳細内容\n\n</details>\n'),
       hr: () => insertAtCursor('\n\n***\n\n')
     };
@@ -1465,20 +1523,15 @@ ${state.markdown}
       }
     });
 
-    const previewModal = document.getElementById("preview-modal");
-    const previewFrame = document.getElementById("preview-modal-frame");
     document.getElementById("btn-open-preview").addEventListener("click", () => {
-      previewFrame.srcdoc = buildStandaloneHtml();
-      previewModal.classList.add("active");
-    });
-    document.getElementById("btn-close-preview-modal").addEventListener("click", () => {
-      previewModal.classList.remove("active");
-    });
-    document.getElementById("btn-modal-open-newtab").addEventListener("click", () => {
       const w = window.open();
-      w.document.open();
-      w.document.write(buildStandaloneHtml());
-      w.document.close();
+      if (w) {
+        w.document.open();
+        w.document.write(buildStandaloneHtml());
+        w.document.close();
+      } else {
+        showToast("ポップアップがブロックされました。ブラウザの設定を許可してください。");
+      }
     });
 
     const exportModal = document.getElementById("export-modal");
@@ -1495,7 +1548,7 @@ ${state.markdown}
     });
     document.getElementById("btn-copy-code").addEventListener("click", () => {
       navigator.clipboard.writeText(codeBox.textContent).then(() => {
-        showToast("HTMLコードをコピーしました！");
+        showToast("HTMLコードをコピーしました");
       });
     });
     document.getElementById("btn-download-html").addEventListener("click", () => {
