@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>レジュメビューワージェネレーター</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-base: 'Inter', 'Noto Sans JP', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Noto Sans JP', monospace;
+    }
+
+    html[data-theme="light"] {
+      --bg-app: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-surface-sub: #f8fafc;
+      --bg-editor: #f8fafc;
+      --border-color: #e2e8f0;
+      --border-focus: #4f46e5;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --btn-bg: #e2e8f0;
+      --btn-bg-hover: #cbd5e1;
+      --btn-text: #334155;
+      --btn-primary-bg: #4f46e5;
+      --btn-primary-hover: #4338ca;
+      --btn-preview-bg: #059669;
+      --btn-preview-hover: #047857;
+      --scrollbar-thumb: #cbd5e1;
+    }
+
+    html[data-theme="dark"] {
+      --bg-app: #020617;
+      --bg-surface: #0f172a;
+      --bg-surface-sub: #020617;
+      --bg-editor: #020617;
+      --border-color: #1e293b;
+      --border-focus: #6366f1;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --btn-bg: #1e293b;
+      --btn-bg-hover: #334155;
+      --btn-text: #cbd5e1;
+      --btn-primary-bg: #4f46e5;
+      --btn-primary-hover: #6366f1;
+      --btn-preview-bg: #059669;
+      --btn-preview-hover: #10b981;
+      --scrollbar-thumb: #334155;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: var(--font-base);
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      user-select: none;
+    }
+    .code-font { font-family: var(--font-mono); }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+
+    header {
+      height: 52px;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+    .header-title { font-size: 0.95rem; font-weight: bold; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .btn-default {
+      background-color: var(--btn-bg);
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-default:hover { background-color: var(--btn-bg-hover); }
+    .btn-preview { background-color: var(--btn-preview-bg); color: #fff; }
+    .btn-preview:hover { background-color: var(--btn-preview-hover); }
+    .btn-export { background-color: var(--btn-primary-bg); color: #fff; }
+    .btn-export:hover { background-color: var(--btn-primary-hover); }
+
+    .app-workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    aside#settings-sidebar {
+      width: 320px;
+      background-color: var(--bg-surface);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+      user-select: text;
+      font-size: 0.78rem;
+    }
+    .settings-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .settings-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .section-label { font-weight: 600; color: var(--text-muted); margin-bottom: 8px; display: block; }
+
+    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .preset-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background-color: var(--bg-surface-sub);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      text-align: left;
+    }
+    .preset-btn:hover { background-color: var(--btn-bg-hover); }
+    .color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+    .form-control {
+      width: 100%;
+      padding: 6px 10px;
+      background-color: var(--bg-surface-sub);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 6px;
+      font-size: 0.78rem;
+    }
+    .form-control:focus { outline: none; border-color: var(--border-focus); }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background-color: var(--bg-surface-sub);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .color-row input[type="color"] {
+      width: 24px;
+      height: 24px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+    .color-hex {
+      width: 72px;
+      padding: 2px 6px;
+      font-size: 11px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      border-radius: 4px;
+    }
+
+    main.editor-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background-color: var(--bg-app);
+    }
+
+    .toolbar {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 6px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      border-right: 1px solid var(--border-color);
+      padding-right: 6px;
+      margin-right: 3px;
+    }
+    .wiki-tool-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.1s;
+    }
+    .wiki-tool-btn:hover { background-color: var(--btn-bg-hover); color: var(--text-main); }
+
+    .textarea-wrapper {
+      flex: 1;
+      padding: 12px;
+      overflow: hidden;
+    }
+    #markdown-editor {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+      background-color: var(--bg-editor);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      resize: none;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      user-select: text;
+    }
+    #markdown-editor:focus { outline: none; border-color: var(--border-focus); }
+
+    .status-bar {
+      height: 32px;
+      background-color: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-header {
+      height: 48px;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-box {
+      width: 90%;
+      max-width: 800px;
+      margin: auto;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+    }
+    .code-box {
+      padding: 14px;
+      background-color: var(--bg-surface-sub);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--text-main);
+      max-height: 400px;
+      overflow: auto;
+      user-select: all;
+    }
+    .modal-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: var(--btn-primary-bg);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transform: translateY(40px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 200;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="header-title">表示用レジュメ</span>
+    </div>
+
+    <div class="header-actions">
+      <button id="btn-theme-toggle" class="btn btn-default" type="button" title="テーマ切り替え">
+        <span id="theme-toggle-icon">〇</span> <span id="theme-toggle-text">Light</span>
+      </button>
+
+      <button id="btn-open-preview" class="btn btn-preview">
+        <span>プレビュー</span>
+      </button>
+
+      <button id="btn-export-modal" class="btn btn-export">
+        <span>コード出力／コピー</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-workspace">
+
+    <aside id="settings-sidebar">
+      <div class="settings-header">
+        <span>スタイル設定</span>
+      </div>
+
+      <div class="settings-body">
+        <!-- プリセット -->
+        <div>
+          <span class="section-label">プリセット配色</span>
+          <div class="preset-grid">
+            <button data-preset="blue" class="preset-btn">
+              <span class="color-dot" style="background: #2b5797;"></span><span>青</span>
+            </button>
+            <button data-preset="emerald" class="preset-btn">
+              <span class="color-dot" style="background: #059669;"></span><span>緑</span>
+            </button>
+            <button data-preset="crimson" class="preset-btn">
+              <span class="color-dot" style="background: #991b1b;"></span><span>赤</span>
+            </button>
+            <button data-preset="slate" class="preset-btn">
+              <span class="color-dot" style="background: #334155;"></span><span>黒</span>
+            </button>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;">
+
+        <!-- タイトル・フォント -->
+        <div>
+          <div class="form-group">
+            <label>タイトル</label>
+            <input type="text" id="prop-doc-title" value="ページのタイトル" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>初期フォント</label>
+            <select id="prop-default-font" class="form-control">
+              <option value="font-sans">ゴシック体</option>
+              <option value="font-serif">明朝体</option>
+            </select>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;">
+
+        <div>
+          <span class="section-label">色設定</span>
+
+          <div class="color-row">
+            <span>指し色</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="color" id="prop-color-primary" value="#2b5797">
+              <input type="text" id="prop-color-primary-text" value="#2b5797" class="color-hex code-font">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <span>背景色</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="color" id="prop-color-bg" value="#ffffff">
+              <input type="text" id="prop-color-bg-text" value="#ffffff" class="color-hex code-font">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <span>文字色</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="color" id="prop-color-text" value="#1e293b">
+              <input type="text" id="prop-color-text-text" value="#1e293b" class="color-hex code-font">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <span>リンク色</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="color" id="prop-color-link" value="#0059db">
+              <input type="text" id="prop-color-link-text" value="#0059db" class="color-hex code-font">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <span>注釈背景色</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="color" id="prop-color-panel-bg" value="#f8fafc">
+              <input type="text" id="prop-color-panel-bg-text" value="#f8fafc" class="color-hex code-font">
+            </div>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;">
+
+        <div>
+          <span class="section-label">Favicon（URLまたは画像）</span>
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+            <img id="favicon-preview" src="samplefavicon.svg" alt="icon" style="width:28px; height:28px; border:1px solid var(--border-color); border-radius:4px; padding:2px; background:#fff; object-fit:contain;">
+            <input type="text" id="prop-favicon-url" value="samplefavicon.svg" class="form-control" style="flex:1;">
+          </div>
+          <label class="btn btn-default" style="width:100%; justify-content:center;">
+            <span>画像ファイルをアップロード</span>
+            <input type="file" id="prop-favicon-file" accept="image/*,.svg,.ico" style="display:none;">
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    <main class="editor-area">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button type="button" class="wiki-tool-btn" data-action="h1"># H1</button>
+          <button type="button" class="wiki-tool-btn" data-action="h2">## 大見出し</button>
+          <button type="button" class="wiki-tool-btn" data-action="h3">### 中見出し</button>
+          <button type="button" class="wiki-tool-btn" data-action="h4">#### 小見出し</button>
+        </div>
+
+        <div class="toolbar-group">
+          <button type="button" class="wiki-tool-btn" data-action="bold"><b>B</b></button>
+          <button type="button" class="wiki-tool-btn" data-action="italic"><i>I</i></button>
+          <button type="button" class="wiki-tool-btn" data-action="strike"><s>S</s></button>
+          <button type="button" class="wiki-tool-btn" data-action="underline"><u>U</u></button>
+        </div>
+
+        <div class="toolbar-group">
+          <button type="button" class="wiki-tool-btn" data-action="footnote";">[^注釈]</button>
+          <button type="button" class="wiki-tool-btn" data-action="pagebreak">改ページ</button>
+          <button type="button" class="wiki-tool-btn" data-action="reflist">参考文献リスト</button>
+        </div>
+
+        <div class="toolbar-group" style="border:0;">
+          <button type="button" class="wiki-tool-btn" data-action="quote">&gt; 引用</button>
+          <button type="button" class="wiki-tool-btn" data-action="link">リンク</button>
+          <button type="button" class="wiki-tool-btn" data-action="code">&lt;/&gt; コード</button>
+          <button type="button" class="wiki-tool-btn" data-action="table">表</button>
+          <button type="button" class="wiki-tool-btn" data-action="details">折りたたみ</button>
+          <button type="button" class="wiki-tool-btn" data-action="hr">―</button>
+        </div>
+      </div>
+
+      <!-- 入力欄 -->
+      <div class="textarea-wrapper">
+        <textarea id="markdown-editor" spellcheck="false" class="code-font" placeholder="# ここにレジュメの本文を入力"></textarea>
+      </div>
+
+      <div class="status-bar">
+        <div style="display:flex; gap:16px;">
+          <span id="stat-chars">文字数: 0</span>
+          <span id="stat-lines">行数: 0</span>
+          <span id="stat-footnotes">注釈数: 0</span>
+        </div>
+        <div>
+          <span>Markdown</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="preview-modal" class="modal-overlay">
+    <div class="modal-header">
+      <span style="font-weight:bold; font-size:0.9rem;">プレビュー</span>
+      <div style="display:flex; gap:8px;">
+        <button id="btn-modal-open-newtab" class="btn btn-default">別タブで開く ↗</button>
+        <button id="btn-close-preview-modal" class="btn btn-preview">閉じる ✕</button>
+      </div>
+    </div>
+    <div style="flex:1; position:relative; background:#fff;">
+      <iframe id="preview-modal-frame" style="width:100%; height:100%; border:0; position:absolute; inset:0;"></iframe>
+    </div>
+  </div>
+
+  <div id="export-modal" class="modal-overlay" style="align-items:center; justify-content:center; padding:20px;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span style="font-weight:bold;">HTMLコードの書き出し</span>
+        <button id="modal-close-btn" class="btn btn-default" style="padding:2px 8px;">✕</button>
+      </div>
+      <div style="padding:16px; overflow:hidden; display:flex; flex-direction:column; gap:12px;">
+        <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">
+          以下のコードをコピーして <code>.html</code> ファイルとして保存すれば、単体でそのまま動くレジュメビューワーになります。
+        </p>
+        <pre id="export-code-box" class="code-box code-font"></pre>
+      </div>
+      <div class="modal-footer">
+        <span id="code-size-stat" style="font-size:0.75rem; color:var(--text-muted); margin-right:auto; align-self:center;"></span>
+        <button id="btn-copy-code" class="btn btn-export">HTMLコードをコピー</button>
+        <button id="btn-download-html" class="btn btn-default">.htmlファイル保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">メッセージ</div>
+
+  <script>
+ const DEFAULT_MARKDOWN = `# ようこそ！
+更新日：2026年10月30日
+
+## 使い方
+左のメニューでは見た目の設定ができます。
+
+ページを再読み込みするとすべて消えます。こまめにコードをコピーしてください。
+
+入力方法について説明します。
+
+## 大見出し
+大見出しは目次に表示されます。
+
+### 中見出し
+中見出しも目次に表示されます。
+
+#### 小見出し
+小見出しは目次に表示されません。
+
+# 大大見出し
+この見出し形式はタイトルを表示するために使っているため、目次には表示されません。大見出しの使用が推奨されます。
+
+## 特殊な記法
+一般的なマークダウンとは異なる記法です。
+
+### 注釈のつけ方
+注釈[^これは注釈です]はこのように表記されます。
+
+本文中の上付き文字にカーソルを合わせると注釈が見れます。クリックすると右側（あるいは大見出しの末尾）に表示されている注釈に飛びます。
+
+右側（あるいは大見出しの末尾）に表示されている注釈をクリックすると本文の当該位置に戻れます。
+
+### ページ番号
+ページ番号を示すことができます。
+---page 1---
+---page 2---
+ページ番号を表記することで、印刷時のページ区切れを指定することができます。
+
+### 参考文献のぶら下げ
+参考文献は以下のように表記されます。
+<ul class="reference-list">
+
+  - 寿司 In Wikipedia, October 27, 2026. https://ja.wikipedia.org/w/index.php?title=%E5%AF%BF%E5%8F%B8&oldid=111546205.
+  - Chevetogne Abbey. In Wikipedia, February 4, 2026. https://en.wikipedia.org/w/index.php?title=Chevetogne_Abbey&oldid=1336578695.
+
+</ul>
+
+以下に示すように、htmlタグと文献情報の間は**絶対に1行開けてください**。
+
+\`\`\`
+<ul class="reference-list">
+
+  - ここに書誌情報を入力
+  - ここに書誌情報を入力
+
+</ul>
+\`\`\`
+
+## それ以外の記法
+一般的なマークダウンの記法が使用できます。見た目の調整を行っていないため、一般的な見た目をしています。
+
+これは **太字** です。
+
+これも __太字__ です。
+
+これは *斜体* です。
+
+これは _斜体_ です。
+
+これは ~~訂正線~~です。
+
+これは<u>下線</u>です
+
+> これは引用です。
+
+[リンク](https://ja.wikipedia.org/wiki/%E3%83%AA%E3%83%B3%E3%82%AF) はこのように表記されます。
+
+これは \`code\` です
+\`\`\`
+hello
+this is code.
+\`\`\`
+- これはリストです
+    - Tabキーで字下げをしたリストです。
+
+<details>
+<summary>クリックで開閉できます</summary>
+
+これは内容です。
+これも内容です。
+</details>
+
+画像のサイズが調整できるので、htmlタグを使うことが推奨されます。画像とhtmlファイルは同じフォルダに置いてください。
+
+<img src="samplefavicon.svg" alt="alt text" width="150" height="150">
+
+| これは | テーブル |
+| ---- | ---- |
+| 左上 | 右上 |
+| 左下 | 右下 |
+
+これは水平線です。
+***
+
+## おわりに
+改善点や必要な機能があればお知らせください。使用時のクレジット表記は不要です。`;
+
+    const state = {
+      title: "ページのタイトル",
+      defaultFont: "font-sans",
+      colorPrimary: "#2b5797",
+      colorBg: "#ffffff",
+      colorText: "#1e293b",
+      colorLink: "#0059db",
+      colorPanelBg: "#f8fafc",
+      faviconUrl: "samplefavicon.svg",
+      markdown: DEFAULT_MARKDOWN
+    };
+
+    const PRESETS = {
+      blue: { colorPrimary: "#2b5797", colorBg: "#ffffff", colorText: "#1e293b", colorLink: "#0059db", colorPanelBg: "#f8fafc" },
+      emerald: { colorPrimary: "#059669", colorBg: "#fcfffd", colorText: "#132a1f", colorLink: "#05ebb1", colorPanelBg: "#f2fbf7" },
+      crimson: { colorPrimary: "#991b1b", colorBg: "#ffffff", colorText: "#261919", colorLink: "#b91c1c", colorPanelBg: "#fef8f8" },
+      slate: { colorPrimary: "#334155", colorBg: "#ffffff", colorText: "#0f172a", colorLink: "#1e293b", colorPanelBg: "#f1f5f9" }
+    };
+
+    const editor = document.getElementById("markdown-editor");
+    const docTitleInput = document.getElementById("prop-doc-title");
+    const defaultFontSelect = document.getElementById("prop-default-font");
+    const colorPrimaryInput = document.getElementById("prop-color-primary");
+    const colorPrimaryText = document.getElementById("prop-color-primary-text");
+    const colorBgInput = document.getElementById("prop-color-bg");
+    const colorBgText = document.getElementById("prop-color-bg-text");
+    const colorTextInput = document.getElementById("prop-color-text");
+    const colorTextText = document.getElementById("prop-color-text-text");
+    const colorLinkInput = document.getElementById("prop-color-link");
+    const colorLinkText = document.getElementById("prop-color-link-text");
+    const colorPanelBgInput = document.getElementById("prop-color-panel-bg");
+    const colorPanelBgText = document.getElementById("prop-color-panel-bg-text");
+    const faviconUrlInput = document.getElementById("prop-favicon-url");
+    const faviconFileInput = document.getElementById("prop-favicon-file");
+    const faviconPreview = document.getElementById("favicon-preview");
+
+    const statChars = document.getElementById("stat-chars");
+    const statLines = document.getElementById("stat-lines");
+    const statFootnotes = document.getElementById("stat-footnotes");
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function hexToRgba(hex, alpha) {
+      hex = hex.replace("#", "");
+      if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
+      const num = parseInt(hex, 16);
+      return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+    }
+
+    function escapeHtml(string) {
+      return String(string).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+    }
+
+    function buildStandaloneHtml() {
+      const primaryBg = hexToRgba(state.colorPrimary, 0.08);
+
+      return `<!DOCTYPE html>
+<html lang="ja" class="${state.defaultFont}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(state.title)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/svg+xml" href="${state.faviconUrl}">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Noto+Sans:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Hebrew:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Noto+Serif+Hebrew:wght@400;700&family=Noto+Serif+JP:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Serif+TC:wght@400;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
+  <style>
+    :root {
+      --drawer-width: 300px;
+      --footnotes-width: 320px;
+      --primary-color: ${state.colorPrimary};
+      --primary-bg: ${primaryBg};
+      --border-color: #e2e8f0;
+      --text-color: ${state.colorText};
+      --link-color: ${state.colorLink};
+      --bg-page: ${state.colorBg};
+      --bg-drawer: ${state.colorPanelBg};
+      --bg-footnotes: ${state.colorPanelBg};
+      --highlight-bg: #fef08a;
+      :root {
+      --font-sans: 
+        "Noto Sans",
+        "Noto Sans JP",
+        "Noto Sans SC",
+        "Noto Sans TC",
+        "Noto Sans KR",
+        "Noto Sans Hebrew",
+        -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji";
+
+       --font-serif: 
+        "EB Garamond",
+        "Noto Serif",
+        "Noto Serif JP",
+        "Noto Serif SC",
+        "Noto Serif TC",
+        "Noto Serif KR",
+        "Noto Serif Hebrew"
+        serif;
+}
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html.font-sans body { font-family: var(--font-sans); }
+    html.font-serif body { font-family: var(--font-serif); }
+    body {
+      margin: 0;
+      color: var(--text-color);
+      line-height: 1.85;
+      background-color: var(--bg-page);
+    }
+
+    a {
+      color: var(--link-color);
+      text-decoration: underline;
+    }
+
+    .menu-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 2100;
+      width: 42px;
+      height: 42px;
+      background-color: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 1.25rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      color: var(--text-color);
+      transition: background-color 0.2s;
+    }
+    .menu-toggle:hover { filter: brightness(0.95); }
+
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: var(--drawer-width);
+      height: 100vh;
+      overflow-y: auto;
+      background-color: var(--bg-drawer);
+      border-right: 1px solid var(--border-color);
+      padding: 70px 20px 30px 20px;
+      z-index: 2000;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+    }
+    body.menu-open #sidebar { transform: translateX(0); }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      z-index: 1900;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    body.menu-open .sidebar-overlay { display: block; opacity: 1; }
+
+    .menu-actions {
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+    }
+    .btn-print {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 16px;
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-print:hover { opacity: 0.9; }
+    .btn-print:active { transform: scale(0.98); }
+
+    .font-control-group { margin-top: 14px; }
+    .font-control-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: #64748b;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .font-switch-buttons { display: flex; background-color: var(--border-color); padding: 3px; border-radius: 6px; gap: 2px; }
+    .btn-font {
+      flex: 1;
+      padding: 7px 0;
+      border: none;
+      background: transparent;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text-color);
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-font.active { background: var(--bg-page); color: var(--primary-color); font-weight: bold; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+
+    .toc-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0; margin-bottom: 12px; color: #64748b; }
+    #toc ul { list-style: none; padding-left: 0; margin: 0; }
+    #toc li { margin-bottom: 10px; }
+    #toc li.toc-h3 { padding-left: 14px; font-size: 0.9rem; }
+    #toc a { color: var(--text-color); text-decoration: none; transition: color 0.15s; display: inline-block; width: 100%; opacity: 0.85; }
+    #toc a:hover { color: var(--primary-color); text-decoration: underline; opacity: 1; }
+
+    .app-container { display: flex; min-height: 100vh; width: 100%; }
+
+    #main-content {
+      flex: 1;
+      padding: 48px 60px 48px 84px;
+      min-width: 0;
+      max-width: 900px;
+    }
+    #main-content h1 { font-size: 1.9rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-top: 0; }
+    #main-content h2 {
+      font-size: 1.4rem;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 12px;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      scroll-margin-top: 30px;
+    }
+    #main-content h3 { font-size: 1.15rem; margin-top: 28px; scroll-margin-top: 30px; }
+
+    .reference-list,
+    ul.reference-list {
+      list-style-type: none !important;
+      list-style: none !important;
+      padding-left: 0 !important;
+      margin: 16px 0 !important;
+    }
+
+    .reference-list li,
+    ul.reference-list li {
+      list-style-type: none !important;
+      list-style: none !important;
+      padding-left: 2em !important;
+      text-indent: -2em !important;
+      margin-bottom: 8px !important;
+      line-height: 1.6 !important;
+    }
+
+    .reference-list li::before,
+    ul.reference-list li::before {
+      content: none !important;
+    }
+
+    #footnotes-panel {
+      width: var(--footnotes-width);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background-color: var(--bg-footnotes);
+      border-left: 1px solid var(--border-color);
+      padding: 40px 20px 30px 20px;
+      flex-shrink: 0;
+    }
+    #footnotes-panel h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0; margin-bottom: 16px; color: #64748b; }
+
+    .footnote-wrapper {
+      position: relative;
+      display: inline-block;
+      vertical-align: baseline;
+      margin: 0 1px;
+      scroll-margin-top: 90px;
+      border-radius: 4px;
+      transition: background-color 0.4s ease;
+    }
+    .footnote-wrapper:target,
+    .footnote-wrapper.active-target {
+      background-color: var(--highlight-bg);
+      outline: 2px solid #facc15;
+    }
+
+    .footnote-ref {
+      font-size: 0.78em;
+      vertical-align: super;
+      line-height: 1;
+      color: var(--primary-color);
+      font-weight: bold;
+      text-decoration: none;
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .footnote-ref:hover { background-color: var(--primary-bg); text-decoration: underline; }
+
+    .footnote-balloon {
+      visibility: hidden;
+      opacity: 0;
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      width: max-content;
+      max-width: 300px;
+      min-width: 180px;
+      background-color: #ffffff;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: normal;
+      line-height: 1.5;
+      box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      z-index: 1000;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+      word-break: break-word;
+    }
+    .footnote-balloon::before {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -6px;
+      border-width: 6px;
+      border-style: solid;
+      border-color: #cbd5e1 transparent transparent transparent;
+    }
+    .footnote-balloon::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #ffffff transparent transparent transparent;
+    }
+    .footnote-wrapper:hover .footnote-balloon {
+      visibility: visible;
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .fn-chapter-group { margin-bottom: 24px; }
+    .fn-chapter-title {
+      font-size: 0.82rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+    .fn-list { list-style: none; padding-left: 0; margin: 0; font-size: 0.85rem; line-height: 1.6; }
+    .fn-item {
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      scroll-margin-top: 80px;
+      transition: all 0.3s;
+    }
+    .fn-item:target { background-color: #fef9c3; border-color: #facc15; box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.4); }
+
+    .fn-item-link { display: block; color: inherit; text-decoration: none; cursor: pointer; }
+    .fn-item-link:hover .fn-text { color: var(--primary-color); }
+    .fn-num { font-weight: bold; color: var(--primary-color); margin-right: 6px; }
+    .fn-back-icon { font-size: 0.85em; color: #94a3b8; margin-left: 6px; transition: color 0.15s; }
+    .fn-item-link:hover .fn-back-icon { color: var(--primary-color); }
+
+    .print-footnotes { display: none; }
+
+    @media screen and (max-width: 800px) {
+      .app-container { flex-direction: column; }
+      #main-content { padding: 68px 20px 30px 20px; max-width: 100%; }
+      #footnotes-panel {
+        width: 100%;
+        height: auto;
+        position: static;
+        border-left: none;
+        border-top: 2px solid var(--border-color);
+        padding: 30px 20px;
+      }
+    }
+
+    @media print {
+      body { font-size: 10.5pt; line-height: 1.6; color: #000; background: #fff !important; }
+      .app-container { display: block !important; width: 100% !important; }
+      .menu-toggle, .sidebar-overlay, #sidebar, #footnotes-panel { display: none !important; }
+      #main-content { padding: 0 !important; margin: 0 !important; max-width: 100% !important; width: 100% !important; }
+      .footnote-balloon, .fn-back-icon { display: none !important; }
+      .print-footnotes {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        margin-top: 24px !important;
+        margin-bottom: 32px !important;
+        padding-top: 10px !important;
+        border-top: 1px solid #333333 !important;
+        font-size: 9pt !important;
+        line-height: 1.5 !important;
+        page-break-inside: avoid;
+      }
+      .print-footnotes-title { font-weight: bold !important; margin-bottom: 6px !important; font-size: 9.5pt !important; }
+      .print-footnotes ol { margin: 0 !important; padding-left: 22px !important; }
+      .print-footnotes li { margin-bottom: 4px !important; }
+      h2 { page-break-after: avoid; }
+    }
+    .page-break-marker {
+      position: relative;
+      margin: 48px 0 36px 0;
+      text-align: right;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .page-break-badge {
+      position: absolute;
+      top: -12px;
+      right: 12px;
+      background-color: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 1px 10px;
+      user-select: none;
+    }
+    @media print {
+      .page-break-marker {
+        border-top: none !important;
+        margin: 0 !important;
+        page-break-before: always !important;
+      }
+      .page-break-badge {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button id="menu-toggle" class="menu-toggle" aria-label="メニュー">☰</button>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <nav id="sidebar">
+    <div class="menu-actions">
+      <button id="btn-print-action" class="btn-print" title="印刷またはPDF保存">
+        レジュメを印刷
+      </button>
+
+      <div class="font-control-group">
+        <span class="font-control-label">書体</span>
+        <div class="font-switch-buttons">
+          <button id="btn-font-sans" class="btn-font ${state.defaultFont === 'font-sans' ? 'active' : ''}">ゴシック</button>
+          <button id="btn-font-serif" class="btn-font ${state.defaultFont === 'font-serif' ? 'active' : ''}">明朝</button>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="toc-title">目次</h3>
+    <div id="toc"></div>
+  </nav>
+
+  <div class="app-container">
+    <main id="main-content"></main>
+    <aside id="footnotes-panel">
+      <h3>脚注一覧</h3>
+      <div id="footnotes-container"></div>
+    </aside>
+  </div>
+
+  <script id="markdown-input" type="text/markdown">
+${state.markdown}
+  <\/script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const toggleBtn = document.getElementById("menu-toggle");
+      const overlay = document.getElementById("sidebar-overlay");
+
+      const toggleMenu = () => {
+        const isOpen = document.body.classList.toggle("menu-open");
+        toggleBtn.textContent = isOpen ? "✕" : "☰";
+      };
+
+      const closeMenu = () => {
+        document.body.classList.remove("menu-open");
+        toggleBtn.textContent = "☰";
+      };
+
+      toggleBtn.addEventListener("click", toggleMenu);
+      overlay.addEventListener("click", closeMenu);
+
+      const printBtn = document.getElementById("btn-print-action");
+      if (printBtn) {
+        printBtn.addEventListener("click", () => {
+          closeMenu();
+          setTimeout(() => {
+            window.print();
+          }, 300);
+        });
+      }
+
+      const btnSans = document.getElementById("btn-font-sans");
+      const btnSerif = document.getElementById("btn-font-serif");
+      const rootHtml = document.documentElement;
+
+      if (btnSans && btnSerif) {
+        btnSans.addEventListener("click", () => {
+          rootHtml.classList.remove("font-serif");
+          rootHtml.classList.add("font-sans");
+          btnSans.classList.add("active");
+          btnSerif.classList.remove("active");
+        });
+
+        btnSerif.addEventListener("click", () => {
+          rootHtml.classList.remove("font-sans");
+          rootHtml.classList.add("font-serif");
+          btnSerif.classList.add("active");
+          btnSans.classList.remove("active");
+        });
+      }
+
+      const rawMd = document.getElementById("markdown-input").textContent;
+      const mdWithPages = rawMd.replace(/---page\\s*(\\d+)---/gi, (match, pageNum) => {
+        return \`\\n\\n<div class="page-break-marker"><span class="page-break-badge">p. \${pageNum}</span></div>\\n\\n\`;
+      });
+      const rawSections = mdWithPages.split(/(?=^##\\s+)/m);
+      let processedMd = "";
+      const sidePanelContainer = document.getElementById("footnotes-container");
+      sidePanelContainer.innerHTML = "";
+
+      rawSections.forEach((sectionText, sIdx) => {
+        const headingMatch = sectionText.match(/^##\\s+(.+)$/m);
+        const chapterTitle = headingMatch ? headingMatch[1].trim() : (sIdx === 0 ? "導入・概要" : \`第\${sIdx}章\`);
+
+        const chapterFootnotes = [];
+        let fnIndex = 1;
+
+        const replacedSection = sectionText.replace(/\\[\\^([^\\]]+)\\]/g, (match, noteContent) => {
+          const currentNum = fnIndex++;
+          const targetId = \`fn-s\${sIdx}-\${currentNum}\`;
+          const refId = \`fnref-s\${sIdx}-\${currentNum}\`;
+
+          chapterFootnotes.push({
+            id: targetId,
+            refId: refId,
+            num: currentNum,
+            text: noteContent
+          });
+
+          return \`<span class="footnote-wrapper" id="\${refId}">\` +
+                   \`<a href="#\${targetId}" class="footnote-ref"><sup>\${currentNum}</sup></a>\` +
+                   \`<span class="footnote-balloon" role="tooltip">\${noteContent}</span>\` +
+                 \`</span>\`;
+        });
+
+        processedMd += replacedSection;
+
+        if (chapterFootnotes.length > 0) {
+          let printBlock = \`\\n\\n<div class="print-footnotes"><div class="print-footnotes-title">【\${chapterTitle} の注】</div><ol>\`;
+          chapterFootnotes.forEach(fn => {
+            printBlock += \`<li>\${fn.text}</li>\`;
+          });
+          printBlock += \`</ol></div>\\n\\n\`;
+          processedMd += printBlock;
+
+          const groupDiv = document.createElement("div");
+          groupDiv.className = "fn-chapter-group";
+
+          const titleDiv = document.createElement("div");
+          titleDiv.className = "fn-chapter-title";
+          titleDiv.textContent = chapterTitle;
+          groupDiv.appendChild(titleDiv);
+
+          const listUl = document.createElement("ul");
+          listUl.className = "fn-list";
+
+          chapterFootnotes.forEach(fn => {
+            const itemLi = document.createElement("li");
+            itemLi.className = "fn-item";
+            itemLi.id = fn.id;
+            itemLi.innerHTML = \`
+              <a href="#\${fn.refId}" class="fn-item-link" title="本文に戻る">
+                <span class="fn-num">\${fn.num}</span>
+                <span class="fn-text">\${fn.text}</span>
+                <span class="fn-back-icon">↩</span>
+              </a>
+            \`;
+            listUl.appendChild(itemLi);
+          });
+
+          groupDiv.appendChild(listUl);
+          sidePanelContainer.appendChild(groupDiv);
+        }
+      });
+
+      const mainContent = document.getElementById("main-content");
+      mainContent.innerHTML = marked.parse(processedMd);
+
+      const tocContainer = document.getElementById("toc");
+      const headings = mainContent.querySelectorAll("h2, h3");
+      const tocList = document.createElement("ul");
+
+      headings.forEach((heading, idx) => {
+        const id = \`toc-heading-\${idx}\`;
+        heading.setAttribute("id", id);
+
+        const li = document.createElement("li");
+        li.className = \`toc-\${heading.tagName.toLowerCase()}\`;
+
+        const a = document.createElement("a");
+        a.href = \`#\${id}\`;
+        a.textContent = heading.textContent;
+        a.addEventListener("click", closeMenu);
+
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+
+      tocContainer.appendChild(tocList);
+
+      document.querySelectorAll(".fn-item-link").forEach(link => {
+        link.addEventListener("click", (e) => {
+          const targetRefId = link.getAttribute("href").replace("#", "");
+          const targetRef = document.getElementById(targetRefId);
+
+          if (targetRef) {
+            document.querySelectorAll(".footnote-wrapper").forEach(el => el.classList.remove("active-target"));
+            targetRef.classList.add("active-target");
+            setTimeout(() => {
+              targetRef.classList.remove("active-target");
+            }, 2000);
+          }
+        });
+      });
+    });
+  <\/script>
+</body>
+</html>`;
+    }
+
+    const themeToggleBtn = document.getElementById("btn-theme-toggle");
+    const themeIcon = document.getElementById("theme-toggle-icon");
+    const themeText = document.getElementById("theme-toggle-text");
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("generator-theme", theme);
+      if (theme === "dark") {
+        themeIcon.textContent = "◆";
+        themeText.textContent = "Light";
+      } else {
+        themeIcon.textContent = "◆";
+        themeText.textContent = "Dark";
+      }
+    }
+
+    const savedTheme = localStorage.getItem("generator-theme") || 
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    applyTheme(savedTheme);
+
+    themeToggleBtn.addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      applyTheme(cur === "dark" ? "light" : "dark");
+    });
+
+    function updateStats() {
+      const val = editor.value;
+      statChars.textContent = `文字数: ${val.length.toLocaleString()}`;
+      statLines.textContent = `行数: ${val.split('\n').length.toLocaleString()}`;
+      const fns = val.match(/\[\^([^\]]+)\]/g);
+      statFootnotes.textContent = `注釈数: ${fns ? fns.length : 0}`;
+    }
+
+    function insertAtCursor(before, after = '', defaultText = '') {
+      editor.focus();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const sel = editor.value.substring(start, end);
+      const txt = sel || defaultText;
+      editor.setRangeText(before + txt + after, start, end, 'select');
+      if (!sel) {
+        editor.selectionStart = start + before.length;
+        editor.selectionEnd = start + before.length + defaultText.length;
+      }
+      state.markdown = editor.value;
+      updateStats();
+    }
+
+    const actions = {
+      h1: () => insertAtCursor('# ', '', 'タイトル'),
+      h2: () => insertAtCursor('\n## ', '\n', '大見出し'),
+      h3: () => insertAtCursor('\n### ', '\n', '中見出し'),
+      h4: () => insertAtCursor('\n#### ', '\n', '小見出し'),
+      bold: () => insertAtCursor('**', '**', '太字'),
+      italic: () => insertAtCursor('*', '*', '斜体'),
+      strike: () => insertAtCursor('~~', '~~', '取消線'),
+      underline: () => insertAtCursor('<u>', '</u>', '下線'),
+      footnote: () => insertAtCursor('[^', ']', '注釈内容'),
+      pagebreak: () => insertAtCursor('\n---page ', '---\n', '1'),
+      reflist: () => insertAtCursor('\n<ul class="reference-list">\n\n  - 書誌情報\n\n</ul>\n'),
+      quote: () => insertAtCursor('\n> ', '\n', '引用文'),
+      link: () => insertAtCursor('[', '](https://example.com)', 'リンクテキスト'),
+      code: () => insertAtCursor('\n```\n', '\n```\n', 'コード'),
+      table: () => insertAtCursor('\n| 項目 | 内容 |\n| ---- | ---- |\n| A    | 1    |\n'),
+      details: () => insertAtCursor('\n<details>\n<summary>要約</summary>\n\n詳細内容\n\n</details>\n'),
+      hr: () => insertAtCursor('\n\n***\n\n')
+    };
+
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => actions[btn.dataset.action]?.());
+    });
+
+    function bindColor(picker, text, key) {
+      picker.addEventListener("input", e => { text.value = e.target.value; state[key] = e.target.value; });
+      text.addEventListener("change", e => {
+        if (/^#[0-9a-f]{3,6}$/i.test(e.target.value)) {
+          picker.value = e.target.value;
+          state[key] = e.target.value;
+        }
+      });
+    }
+    bindColor(colorPrimaryInput, colorPrimaryText, "colorPrimary");
+    bindColor(colorBgInput, colorBgText, "colorBg");
+    bindColor(colorTextInput, colorTextText, "colorText");
+    bindColor(colorLinkInput, colorLinkText, "colorLink");
+    bindColor(colorPanelBgInput, colorPanelBgText, "colorPanelBg");
+
+    docTitleInput.addEventListener("input", e => state.title = e.target.value);
+    defaultFontSelect.addEventListener("change", e => state.defaultFont = e.target.value);
+    faviconUrlInput.addEventListener("input", e => {
+      state.faviconUrl = e.target.value || "samplefavicon.svg";
+      faviconPreview.src = state.faviconUrl;
+    });
+    faviconFileInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          state.faviconUrl = ev.target.result;
+          faviconUrlInput.value = state.faviconUrl;
+          faviconPreview.src = state.faviconUrl;
+          showToast("Faviconを適用しました");
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.querySelectorAll(".preset-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = PRESETS[btn.dataset.preset];
+        if (p) {
+          Object.assign(state, p);
+          colorPrimaryInput.value = colorPrimaryText.value = p.colorPrimary;
+          colorBgInput.value = colorBgText.value = p.colorBg;
+          colorTextInput.value = colorTextText.value = p.colorText;
+          colorLinkInput.value = colorLinkText.value = p.colorLink;
+          colorPanelBgInput.value = colorPanelBgText.value = p.colorPanelBg;
+          showToast("配色を適用しました");
+        }
+      });
+    });
+
+    editor.addEventListener("input", () => { state.markdown = editor.value; updateStats(); });
+    editor.addEventListener("keydown", e => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        editor.setRangeText("    ", start, editor.selectionEnd, "end");
+        state.markdown = editor.value;
+        updateStats();
+      }
+    });
+
+    const previewModal = document.getElementById("preview-modal");
+    const previewFrame = document.getElementById("preview-modal-frame");
+    document.getElementById("btn-open-preview").addEventListener("click", () => {
+      previewFrame.srcdoc = buildStandaloneHtml();
+      previewModal.classList.add("active");
+    });
+    document.getElementById("btn-close-preview-modal").addEventListener("click", () => {
+      previewModal.classList.remove("active");
+    });
+    document.getElementById("btn-modal-open-newtab").addEventListener("click", () => {
+      const w = window.open();
+      w.document.open();
+      w.document.write(buildStandaloneHtml());
+      w.document.close();
+    });
+
+    const exportModal = document.getElementById("export-modal");
+    const codeBox = document.getElementById("export-code-box");
+    const sizeStat = document.getElementById("code-size-stat");
+    document.getElementById("btn-export-modal").addEventListener("click", () => {
+      const code = buildStandaloneHtml();
+      codeBox.textContent = code;
+      sizeStat.textContent = `サイズ: ${(new Blob([code]).size / 1024).toFixed(1)} KB`;
+      exportModal.classList.add("active");
+    });
+    document.getElementById("modal-close-btn").addEventListener("click", () => {
+      exportModal.classList.remove("active");
+    });
+    document.getElementById("btn-copy-code").addEventListener("click", () => {
+      navigator.clipboard.writeText(codeBox.textContent).then(() => {
+        showToast("HTMLコードをコピーしました！");
+      });
+    });
+    document.getElementById("btn-download-html").addEventListener("click", () => {
+      const blob = new Blob([codeBox.textContent], { type: "text/html;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${state.title.replace(/[\\/:*?"<>|]/g, "_") || "resume"}.html`;
+      a.click();
+      showToast("ファイルを保存しました");
+    });
+
+    editor.value = DEFAULT_MARKDOWN;
+    updateStats();
+  </script>
+</body>
+</html>
